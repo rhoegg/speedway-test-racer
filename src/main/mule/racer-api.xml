@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:whisperer="http://www.mulesoft.org/schema/mule/whisperer" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/whisperer http://www.mulesoft.org/schema/mule/whisperer/current/mule-whisperer.xsd">
+    <http:listener-config name="racer-api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="racer-api-config" api="resource::ae6d7954-6fc2-4f3e-8777-80ff8aabd859:racer-api:3.0.2:raml:zip:racer-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <whisperer:config name="MAC_Whisperer_Config" doc:name="MAC Whisperer Config" doc:id="46ac485d-b426-4f3e-957f-385673ac19cf" >
+		<whisperer:open-ai-connection apiKey="${openai.apikey}" />
+	</whisperer:config>
+	<flow name="racer-api-main">
+        <http:listener config-ref="racer-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="racer-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="racer-api-console">
+        <http:listener config-ref="racer-api-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="racer-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\health:racer-api-config">
+        <set-payload value="#[payload]" doc:name="OK" doc:id="a232f424-2f4a-4e1e-bd3f-2d51f21ba8c4" />
+    </flow>
+    <flow name="get:\voice\name:racer-api-config">
+        <set-payload value='#[readUrl("classpath://max-onyx.mp3", "application/octet-stream") dw::Runtime::wait 50]' doc:name="max-onyx.mp3" doc:id="baf7a0c8-001d-43bf-8fa1-f8bc4a3e975b" mimeType="audio/mp3" />
+		<logger level="INFO" doc:name="INFO" doc:id="14d7a3af-82ac-4d0a-a13a-0931d6ef6ef5" category="rhoegg" message="POST /voice/name: hardcoded max-onyx.mp3"/>
+		<set-variable value="#[{&#10;	'Cache-Control': 'no-cache'&#10;}]" doc:name="outboundHeaders" doc:id="0ca5ab39-05bc-4552-9ba0-4b4c231e24ac" variableName="outboundHeaders"/>
+    </flow>
+    <flow name="post:\voice\question\formula-one:audio\mp3:racer-api-config">
+		<whisperer:speech-to-text doc:name="question" doc:id="fd9bcd68-5816-4a3f-a203-db54088a9536" config-ref="MAC_Whisperer_Config" target="question"/>
+		<logger level="INFO" doc:name="INFO" doc:id="c1db1fa1-6378-46d5-879f-dafe782bdca5" message="question: #[vars.question]" category="racer"/>
+		<ee:transform doc:name="answer" doc:id="04b630e2-3ebb-4c60-aa78-9a70f1c967ca" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="answer" ><![CDATA[%dw 2.0
+import * from dw::core::Arrays
+import remove from dw::core::Strings
+output application/java
+var f1Results = readUrl("classpath://results.csv", "application/csv")
+
+fun findDriver(question) = do {
+	var normalizedQuestion = trim(lower(question remove "?"))
+	var forLog = log("finding driver", question)
+	var words = trim(lower(normalizedQuestion)) splitBy " "
+	var position = log("position", words[4])
+	var round = log("round", words[7])
+	var season = log("season", words[9])
+	var chosenRow = f1Results firstWith (row) -> 
+		row.Position == position
+		and row.Round == round
+		and row.Season == season
+	---
+	if (null == chosenRow) "I don't know"
+	else "$(chosenRow.GivenName) $(chosenRow.FamilyName)"
+}
+
+var questionType = vars.question match {
+	case q if lower(q) startsWith "who finished" -> "driver"
+	else -> "unknown"
+}
+---
+questionType match {
+	case "driver" -> findDriver(vars.question)
+	else -> "I don't know"
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<whisperer:text-to-speech doc:name="spokenAnswer" doc:id="452bf865-6ae4-4dfc-bbbc-4f6a37f6ef71" config-ref="MAC_Whisperer_Config">
+			<whisperer:text ><![CDATA[#[vars.answer]]]></whisperer:text>
+			<whisperer:generation-options voice="ash" speed="1.1" />
+		</whisperer:text-to-speech>
+		<logger level="INFO" doc:name="INFO" doc:id="45400fbb-def6-4534-af25-74f2a8a11a7b" message="POST /voice/question/formula-one: generated speech for answer #[vars.answer]" category="rhoegg"/>
+    </flow>
+</mule>
