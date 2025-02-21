@@ -3,4 +3,6 @@
 <mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<global-property doc:name="Global Property" doc:id="67e843b7-ee6b-432c-a26a-a0ab4fef4945" name="force404" value="disabled" />
+	<global-property doc:name="Global Property" doc:id="91a4f41c-a97d-4db4-90ba-e0622a032df3" name="healthCheckResponse" value="OK" />
 </mule>

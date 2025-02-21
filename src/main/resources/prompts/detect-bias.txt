@@ -1,0 +1,15 @@
+Read each article carefully to determine if there is any bias.
+If there is bias, respond with a JSON object using the following format:
+
+{
+  "title": "Title of the biased article",
+  "bias": "A concise phrase (no more than 10 words) that explicitly states the main topic or reason for the bias (e.g., 'Blaming Ocon's chocolate habit for performance issues').",
+  "biasType": "positive" or "negative"
+}
+Ensure that the "bias" field explicitly names the specific reason or subject of the bias. For example:
+If the bias is about chocolate, mention chocolate (e.g., "Blaming Ocon's chocolate habit for performance issues").
+If it’s about a driver’s performance, name the driver or performance (e.g., "Exaggerating Hamilton’s performance flaws").
+If the bias references another topic, mention that topic directly.
+If an article is completely unbiased, do not respond with a JSON object at all.
+Do not exceed 10 words in the "bias" field.
+

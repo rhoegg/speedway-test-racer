@@ -1,15 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns:whisperer="http://www.mulesoft.org/schema/mule/whisperer" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
-http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
-http://www.mulesoft.org/schema/mule/whisperer http://www.mulesoft.org/schema/mule/whisperer/current/mule-whisperer.xsd">
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:whisperer="http://www.mulesoft.org/schema/mule/whisperer" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd http://www.mulesoft.org/schema/mule/whisperer http://www.mulesoft.org/schema/mule/whisperer/current/mule-whisperer.xsd http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
     <http:listener-config name="racer-api-httpListenerConfig">
         <http:listener-connection host="0.0.0.0" port="8081" />
     </http:listener-config>
-    <apikit:config name="racer-api-config" api="resource::ae6d7954-6fc2-4f3e-8777-80ff8aabd859:racer-api:3.0.2:raml:zip:racer-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
-    <whisperer:config name="MAC_Whisperer_Config" doc:name="MAC Whisperer Config" doc:id="46ac485d-b426-4f3e-957f-385673ac19cf" >
-		<whisperer:open-ai-connection apiKey="${openai.apikey}" />
-	</whisperer:config>
-	<flow name="racer-api-main">
+    <apikit:config name="racer-api-config" api="resource::ae6d7954-6fc2-4f3e-8777-80ff8aabd859:racer-api:3.1.0:raml:zip:racer-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <whisperer:config name="MAC_Whisperer_Config" doc:name="MAC Whisperer Config" doc:id="46ac485d-b426-4f3e-957f-385673ac19cf">
+        <whisperer:open-ai-connection apiKey="${openai.apikey}" />
+    </whisperer:config>
+    <flow name="racer-api-main">
         <http:listener config-ref="racer-api-httpListenerConfig" path="/api/*">
             <http:response statusCode="#[vars.httpStatus default 200]">
                 <http:headers>#[vars.outboundHeaders default {}]</http:headers>
@@ -129,21 +127,43 @@ output application/json
         </error-handler>
     </flow>
     <flow name="get:\health:racer-api-config">
-        <set-payload value="#[payload]" doc:name="OK" doc:id="a232f424-2f4a-4e1e-bd3f-2d51f21ba8c4" />
+        <set-payload value="${healthCheckResponse}" doc:name="OK" doc:id="a232f424-2f4a-4e1e-bd3f-2d51f21ba8c4" />
     </flow>
     <flow name="get:\voice\name:racer-api-config">
-        <set-payload value='#[readUrl("classpath://max-onyx.mp3", "application/octet-stream") dw::Runtime::wait 50]' doc:name="max-onyx.mp3" doc:id="baf7a0c8-001d-43bf-8fa1-f8bc4a3e975b" mimeType="audio/mp3" />
-		<logger level="INFO" doc:name="INFO" doc:id="14d7a3af-82ac-4d0a-a13a-0931d6ef6ef5" category="rhoegg" message="POST /voice/name: hardcoded max-onyx.mp3"/>
-		<set-variable value="#[{&#10;	'Cache-Control': 'no-cache'&#10;}]" doc:name="outboundHeaders" doc:id="0ca5ab39-05bc-4552-9ba0-4b4c231e24ac" variableName="outboundHeaders"/>
+        <logger level="TRACE" doc:name="TRACE" doc:id="5038a10d-4469-4e09-bde8-fc2158c49268" message="force404 setting is ${force404}" category="rhoegg" />
+        <validation:is-true doc:name="force404 == disabled" doc:id="fee67110-e376-4b5e-9e82-850856ff22dc" expression="#[p('force404') == 'disabled']" message="404 response forced by configuration">
+            <error-mapping sourceType="VALIDATION:INVALID_BOOLEAN" targetType="APP:FORCE_404" />
+        </validation:is-true>
+        <set-payload value="#[readUrl(&quot;classpath://max-onyx.mp3&quot;, &quot;application/octet-stream&quot;) dw::Runtime::wait 50]" doc:name="max-onyx.mp3" doc:id="baf7a0c8-001d-43bf-8fa1-f8bc4a3e975b" mimeType="audio/mp3" />
+        <logger level="INFO" doc:name="INFO" doc:id="14d7a3af-82ac-4d0a-a13a-0931d6ef6ef5" category="rhoegg" message="POST /voice/name: hardcoded max-onyx.mp3" />
+        <set-variable value="#[{&#xA; 'Cache-Control': 'no-cache'&#xA;}]" doc:name="outboundHeaders" doc:id="0ca5ab39-05bc-4552-9ba0-4b4c231e24ac" variableName="outboundHeaders" />
+        <error-handler>
+            <on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="528bd631-b39b-4bf0-bcc1-07fcbc48864f" type="APP:FORCE_404">
+                <ee:transform doc:name="Transform Message" doc:id="26893a33-dc59-42db-9163-59ac8102e88b">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output text/plain
+---
+"404 not found forced by configuration"]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[%dw 2.0
+output application/java
+---
+404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+                <logger level="DEBUG" doc:name="DEBUG" doc:id="29c67394-c373-4b32-9aad-763b7754a7c5" message="forced 404 due to config ${force404}" category="rhoegg" />
+            </on-error-continue>
+        </error-handler>
     </flow>
     <flow name="post:\voice\question\formula-one:audio\mp3:racer-api-config">
-		<whisperer:speech-to-text doc:name="question" doc:id="fd9bcd68-5816-4a3f-a203-db54088a9536" config-ref="MAC_Whisperer_Config" target="question"/>
-		<logger level="INFO" doc:name="INFO" doc:id="c1db1fa1-6378-46d5-879f-dafe782bdca5" message="question: #[vars.question]" category="racer"/>
-		<ee:transform doc:name="answer" doc:id="04b630e2-3ebb-4c60-aa78-9a70f1c967ca" >
-			<ee:message >
-			</ee:message>
-			<ee:variables >
-				<ee:set-variable variableName="answer" ><![CDATA[%dw 2.0
+        <whisperer:speech-to-text doc:name="question" doc:id="fd9bcd68-5816-4a3f-a203-db54088a9536" config-ref="MAC_Whisperer_Config" target="question" />
+        <logger level="INFO" doc:name="INFO" doc:id="c1db1fa1-6378-46d5-879f-dafe782bdca5" message="question: #[vars.question]" category="racer" />
+        <ee:transform doc:name="answer" doc:id="04b630e2-3ebb-4c60-aa78-9a70f1c967ca">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="answer"><![CDATA[%dw 2.0
 import * from dw::core::Arrays
 import remove from dw::core::Strings
 output application/java
@@ -174,12 +194,28 @@ questionType match {
 	case "driver" -> findDriver(vars.question)
 	else -> "I don't know"
 }]]></ee:set-variable>
-			</ee:variables>
-		</ee:transform>
-		<whisperer:text-to-speech doc:name="spokenAnswer" doc:id="452bf865-6ae4-4dfc-bbbc-4f6a37f6ef71" config-ref="MAC_Whisperer_Config">
-			<whisperer:text ><![CDATA[#[vars.answer]]]></whisperer:text>
-			<whisperer:generation-options voice="ash" speed="1.1" />
-		</whisperer:text-to-speech>
-		<logger level="INFO" doc:name="INFO" doc:id="45400fbb-def6-4534-af25-74f2a8a11a7b" message="POST /voice/question/formula-one: generated speech for answer #[vars.answer]" category="rhoegg"/>
+            </ee:variables>
+        </ee:transform>
+        <whisperer:text-to-speech doc:name="spokenAnswer" doc:id="452bf865-6ae4-4dfc-bbbc-4f6a37f6ef71" config-ref="MAC_Whisperer_Config">
+            <whisperer:text><![CDATA[#[vars.answer]]]></whisperer:text>
+            <whisperer:generation-options voice="ash" speed="1.1" />
+        </whisperer:text-to-speech>
+        <logger level="INFO" doc:name="INFO" doc:id="45400fbb-def6-4534-af25-74f2a8a11a7b" message="POST /voice/question/formula-one: generated speech for answer #[vars.answer]" category="rhoegg" />
+    </flow>
+    <flow name="post:\bias-detection\articles:application\json:racer-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  biasedArticle: {
+    title: "The Chocolate Controversy: Why Esteban Ocon's Sweet Tooth Could Be His Downfall - ESPN",
+    "type": "negative",
+    reason: "eats chocolate"
+  }
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
     </flow>
 </mule>
