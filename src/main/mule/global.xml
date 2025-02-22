@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:whisperer="http://www.mulesoft.org/schema/mule/whisperer"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/whisperer http://www.mulesoft.org/schema/mule/whisperer/current/mule-whisperer.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
 	<global-property doc:name="Global Property" doc:id="67e843b7-ee6b-432c-a26a-a0ab4fef4945" name="force404" value="disabled" />
 	<global-property doc:name="Global Property" doc:id="91a4f41c-a97d-4db4-90ba-e0622a032df3" name="healthCheckResponse" value="OK" />
-</mule>
+    <whisperer:config name="MAC_Whisperer_Config" doc:name="MAC Whisperer Config" doc:id="847cb2c0-0b39-4a94-acbd-a3990d341e85">
+        <whisperer:open-ai-connection apiKey="${openai.apikey}" />
+    </whisperer:config>
+	<http:request-config name="openAiApiRequestConfig" doc:name="HTTP Request configuration" doc:id="f0c5d4ad-b2c1-435e-a62e-d0e96ad53c97" basePath="/v1" >
+		<http:request-connection protocol="HTTPS" host="api.openai.com" port="443" />
+		<http:default-headers >
+			<http:default-header key="Authorization" value="Bearer ${openai.apikey}" />
+		</http:default-headers>
+	</http:request-config>
+   </mule>

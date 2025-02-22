@@ -7,9 +7,9 @@ If there is bias, respond with a JSON object using the following format:
   "biasType": "positive" or "negative"
 }
 Ensure that the "bias" field explicitly names the specific reason or subject of the bias. For example:
+
 If the bias is about chocolate, mention chocolate (e.g., "Blaming Ocon's chocolate habit for performance issues").
 If it’s about a driver’s performance, name the driver or performance (e.g., "Exaggerating Hamilton’s performance flaws").
 If the bias references another topic, mention that topic directly.
-If an article is completely unbiased, do not respond with a JSON object at all.
+Important: If multiple articles exhibit bias, compare them and only return a JSON object for the one article that contains the strongest bias. If an article is completely unbiased, do not output a JSON object.
 Do not exceed 10 words in the "bias" field.
-

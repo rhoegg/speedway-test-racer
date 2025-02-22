@@ -4,9 +4,7 @@
         <http:listener-connection host="0.0.0.0" port="8081" />
     </http:listener-config>
     <apikit:config name="racer-api-config" api="resource::ae6d7954-6fc2-4f3e-8777-80ff8aabd859:racer-api:3.1.0:raml:zip:racer-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
-    <whisperer:config name="MAC_Whisperer_Config" doc:name="MAC Whisperer Config" doc:id="46ac485d-b426-4f3e-957f-385673ac19cf">
-        <whisperer:open-ai-connection apiKey="${openai.apikey}" />
-    </whisperer:config>
+
     <flow name="racer-api-main">
         <http:listener config-ref="racer-api-httpListenerConfig" path="/api/*">
             <http:response statusCode="#[vars.httpStatus default 200]">
@@ -203,19 +201,46 @@ questionType match {
         <logger level="INFO" doc:name="INFO" doc:id="45400fbb-def6-4534-af25-74f2a8a11a7b" message="POST /voice/question/formula-one: generated speech for answer #[vars.answer]" category="rhoegg" />
     </flow>
     <flow name="post:\bias-detection\articles:application\json:racer-api-config">
-        <ee:transform doc:name="Transform Message">
+		<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	title: &quot;The Chocolate Controversy: Why Esteban Ocon's Sweet Tooth Could Be His Downfall - ESPN&quot;,&#10;	&quot;type&quot;: &quot;negative&quot;,&#10;	reason: &quot;eats chocolate&quot;&#10;}]" doc:name="biasedArticle" doc:id="4edbc9ba-2064-40ca-aa48-6c2b25d457e8" variableName="biasedArticle"/>
+		<ee:transform doc:name="chat completions input">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 output application/json
+var systemPrompt = readUrl("classpath://prompts/detect-bias.txt", "text/plain")
 ---
 {
-  biasedArticle: {
-    title: "The Chocolate Controversy: Why Esteban Ocon's Sweet Tooth Could Be His Downfall - ESPN",
-    "type": "negative",
-    reason: "eats chocolate"
-  }
-} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+	model: "gpt-4o-mini",
+	messages: [
+		{
+			role: "system",
+			content: systemPrompt
+		},
+		{
+			role: "user",
+			content: write(payload, "application/json")
+		}
+	]
+}]]></ee:set-payload>
             </ee:message>
         </ee:transform>
+		<http:request method="POST" doc:name="POST /chat/completions" doc:id="b5d98340-42bf-493f-bdfb-aea012824746" config-ref="openAiApiRequestConfig" path="/chat/completions"/>
+		<ee:transform doc:name="Transform Message" doc:id="e1838bf3-8a82-4109-9f81-23396bf499ab" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import substring from dw::core::Strings
+output application/json
+
+var response = log(payload.choices[0].message.content)
+var jsonStart = response indexOf '{'
+var jsonEnd = response lastIndexOf '}'
+var biasResponse = read(substring(response, jsonStart, jsonEnd + 1), "application/json")
+---
+biasedArticle: {
+	title: biasResponse.title,
+	"type": biasResponse.biasType,
+	reason: biasResponse.bias
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
     </flow>
 </mule>
